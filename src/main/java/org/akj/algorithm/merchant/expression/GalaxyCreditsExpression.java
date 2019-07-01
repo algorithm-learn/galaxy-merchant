@@ -1,11 +1,12 @@
 package org.akj.algorithm.merchant.expression;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.akj.algorithm.merchant.entity.CurrencyAmount;
 import org.akj.algorithm.merchant.utils.CurrencyAmountUtil;
 
-public class GalaxyCreditsExpression {
+public class GalaxyCreditsExpression extends StandardExpression{
 
 	public static final int REPET_LIMIT = 3;
 
@@ -29,7 +30,7 @@ public class GalaxyCreditsExpression {
 		this.metalCurrencies = metalCurrencies;
 	}
 
-	public Long getValue() {
+	public BigDecimal getValue() {
 		return CurrencyAmountUtil.calculate(symbol, currencyAmountList, metalCurrencies);
 	}
 

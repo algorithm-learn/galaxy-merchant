@@ -1,5 +1,6 @@
 package org.akj.algorithm.merchant.service;
 
+import java.math.BigDecimal;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,88 +53,41 @@ public class TradeService {
 
 		// type5: unrecognized input
 		requestsWithoutType1.removeAll(type4Inputs);
-		if(!requestsWithoutType1.isEmpty()) {
+		if (!requestsWithoutType1.isEmpty()) {
 			requestsWithoutType1.stream().forEach(message -> ConsoleUtil.print(Constant.UNRECOGNIZED_INPUT_MESSAGE));
 		}
 	}
 
-	private List<String> handleType4(List<String> type4Inputs, List<CurrencyAmount> galaxyCurrencies,
-			List<CurrencyAmount> metalCurrencies) {
-		List<String> response = new ArrayList<String>();
+	private List<String> extractType1InputFromSource(List<String> requests, List<CurrencyAmount> currencyList) {
+		List<String> type1Inputs = requests.stream().filter(itemStr -> {
+			if (itemStr.trim().matches(Constant.TYPE1_INPUT_FILTER_REGEX)) {
+				final String symbol = itemStr.split(Constant.SPACE)[2];
+				final Optional<CurrencyAmount> matchedCurrency = currencyList.stream()
+						.filter(currency -> currency.getCurrency().getSymbol().equalsIgnoreCase(symbol)).findAny();
+				return matchedCurrency.isPresent();
+			}
 
-		for (String txn : type4Inputs) {
-			String[] txnDetails = txn.split(" ");
-			final Stream<String> stream = Arrays.asList(txnDetails).stream().filter(item -> {
-				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
-			});
+			return false;
+		}).collect(Collectors.toList());
 
-			List<CurrencyAmount> transactionAmountInfo = stream.map(item -> {
-				return galaxyCurrencies.stream().filter(currency -> currency.getCurrency().getSymbol().equals(item))
-						.findFirst().get();
-			}).collect(Collectors.toList());
-
-			String metalSymbol = txnDetails[txnDetails.length - 2];
-
-			GalaxyCreditsExpression expression = new GalaxyCreditsExpression(metalSymbol, transactionAmountInfo,
-					metalCurrencies);
-			Long result = expression.getValue();
-
-			List<String> collect = Arrays.asList(txnDetails).stream().filter(item -> {
-				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
-			}).collect(Collectors.toList());
-
-			collect.add(metalSymbol);
-			collect.add("is");
-			collect.add(result.toString());
-
-			String message = constructResponseMessage(collect);
-			response.add(message);
-		}
-		return response;
+		return type1Inputs;
 	}
 
-	private List<String> extractTypy4InputFromSource(List<String> requestsWithoutType1) {
-		return requestsWithoutType1.stream().filter(item -> item.startsWith("how many")).collect(Collectors.toList());
-	}
+	private List<String> extractType2InputFromSource(List<String> requests) {
+		List<String> type1Inputs = requests.stream().filter(itemStr -> {
+			return itemStr.trim().endsWith(Constant.CREDITS) ? true : false;
+		}).collect(Collectors.toList());
 
-	private List<String> handleType3(List<String> type3Inputs, List<CurrencyAmount> galaxyCurrencies) {
-		List<String> response = new ArrayList<String>();
-		for (String txn : type3Inputs) {
-			String[] txnDetails = txn.split(" ");
-			final Stream<String> tempStream = Arrays.asList(txnDetails).stream().filter(item -> {
-				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
-			});
-
-			final List<CurrencyAmount> transactionAmountInfo = tempStream.map(item -> {
-				return galaxyCurrencies.stream().filter(currency -> currency.getCurrency().getSymbol().equals(item))
-						.findFirst().get();
-			}).collect(Collectors.toList());
-
-			Long result = new GalaxyExpression(transactionAmountInfo).getValue();
-
-			// prepare output string
-			List<String> collect = Arrays.asList(txnDetails).stream().filter(item -> {
-				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
-			}).collect(Collectors.toList());
-			collect.add("is");
-			collect.add(result.toString());
-
-			String message = constructResponseMessage(collect);
-
-			response.add(message.toString().trim());
-		}
-
-		return response;
-	}
-
-	private String constructResponseMessage(List<String> collect) {
-		StringBuffer message = new StringBuffer();
-		collect.forEach(item -> message.append(item).append(" "));
-		return message.toString().trim();
+		return type1Inputs;
 	}
 
 	private List<String> extractType3InputFromSource(List<String> requests) {
-		return requests.stream().filter(s -> s.startsWith("how much is")).collect(Collectors.toList());
+		return requests.stream().filter(s -> s.startsWith(Constant.HOW_MUCH_IS)).collect(Collectors.toList());
+	}
+
+	private List<String> extractTypy4InputFromSource(List<String> requestsWithoutType1) {
+		return requestsWithoutType1.stream().filter(item -> item.startsWith(Constant.HOW_MANY))
+				.collect(Collectors.toList());
 	}
 
 	// extract metal and calculate it's value
@@ -143,7 +97,7 @@ public class TradeService {
 
 		List<CurrencyAmount> metalCurrencies = new ArrayList<CurrencyAmount>();
 		for (String txn : type2Inputs) {
-			String[] txnDetails = txn.split(" ");
+			String[] txnDetails = txn.split(Constant.SPACE);
 			List<String> galaxyGoods = Arrays.asList(txnDetails).stream().filter(item -> {
 				Optional<CurrencyAmount> matchedCurrency = galaxyCurrencyList.stream()
 						.filter(currency -> currency.getCurrency().getSymbol().equals(item.trim())).findAny();
@@ -163,10 +117,9 @@ public class TradeService {
 
 			// get symbol
 			String symbol = txnDetails[2];
-
+			CurrencySymbol metalSymbol = new CurrencySymbol(symbol);
 			MetalExpression metalExpression = new MetalExpression(new CurrencySymbol(symbol), galaxyCurrency, credits);
-
-			metalCurrencies.add(metalExpression.getValue());
+			metalCurrencies.add(new GalaxyCurrencyAmount(metalSymbol, metalExpression.getValue()));
 		}
 
 		return metalCurrencies;
@@ -175,7 +128,7 @@ public class TradeService {
 	private List<CurrencyAmount> populateCurrencyMappingforType1(List<String> type1Inputs,
 			List<CurrencyAmount> currencyList) {
 		List<CurrencyAmount> results = type1Inputs.stream().map(itemStr -> {
-			final String[] temp = itemStr.split(" ");
+			final String[] temp = itemStr.split(Constant.SPACE);
 			final String galaxySymbol = temp[0];
 			final String romanCurrencySynbol = temp[2];
 			final Optional<CurrencyAmount> matchedCurrency = currencyList.stream()
@@ -192,27 +145,75 @@ public class TradeService {
 		return results;
 	}
 
-	private List<String> extractType1InputFromSource(List<String> requests, List<CurrencyAmount> currencyList) {
-		List<String> type1Inputs = requests.stream().filter(itemStr -> {
-			if (itemStr.trim().matches(".*is [A-Z]")) {
-				final String symbol = itemStr.split(" ")[2];
-				final Optional<CurrencyAmount> matchedCurrency = currencyList.stream()
-						.filter(currency -> currency.getCurrency().getSymbol().equalsIgnoreCase(symbol)).findAny();
-				return matchedCurrency.isPresent();
-			}
+	private List<String> handleType3(List<String> type3Inputs, List<CurrencyAmount> galaxyCurrencies) {
+		List<String> response = new ArrayList<String>();
+		for (String txn : type3Inputs) {
+			String[] txnDetails = txn.split(Constant.SPACE);
+			final Stream<String> tempStream = Arrays.asList(txnDetails).stream().filter(item -> {
+				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
+			});
 
-			return false;
-		}).collect(Collectors.toList());
+			final List<CurrencyAmount> transactionAmountInfo = tempStream.map(item -> {
+				return galaxyCurrencies.stream().filter(currency -> currency.getCurrency().getSymbol().equals(item))
+						.findFirst().get();
+			}).collect(Collectors.toList());
 
-		return type1Inputs;
+			BigDecimal result = new GalaxyExpression(transactionAmountInfo).getValue();
+
+			// prepare output string
+			List<String> collect = Arrays.asList(txnDetails).stream().filter(item -> {
+				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
+			}).collect(Collectors.toList());
+			collect.add(Constant.IS);
+			collect.add(result.toString());
+
+			String message = constructResponseMessage(collect);
+
+			response.add(message.toString().trim());
+		}
+
+		return response;
 	}
 
-	private List<String> extractType2InputFromSource(List<String> requests) {
-		List<String> type1Inputs = requests.stream().filter(itemStr -> {
-			return itemStr.trim().endsWith("Credits") ? true : false;
-		}).collect(Collectors.toList());
+	private List<String> handleType4(List<String> type4Inputs, List<CurrencyAmount> galaxyCurrencies,
+			List<CurrencyAmount> metalCurrencies) {
+		List<String> response = new ArrayList<String>();
 
-		return type1Inputs;
+		for (String txn : type4Inputs) {
+			String[] txnDetails = txn.split(Constant.SPACE);
+			final Stream<String> stream = Arrays.asList(txnDetails).stream().filter(item -> {
+				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
+			});
+
+			List<CurrencyAmount> transactionAmountInfo = stream.map(item -> {
+				return galaxyCurrencies.stream().filter(currency -> currency.getCurrency().getSymbol().equals(item))
+						.findFirst().get();
+			}).collect(Collectors.toList());
+
+			String metalSymbol = txnDetails[txnDetails.length - 2];
+
+			GalaxyCreditsExpression expression = new GalaxyCreditsExpression(metalSymbol, transactionAmountInfo,
+					metalCurrencies);
+			BigDecimal result = expression.getValue();
+
+			List<String> collect = Arrays.asList(txnDetails).stream().filter(item -> {
+				return galaxyCurrencies.stream().anyMatch(currency -> currency.getCurrency().getSymbol().equals(item));
+			}).collect(Collectors.toList());
+
+			collect.add(metalSymbol);
+			collect.add(Constant.IS);
+			collect.add(result.longValue() + "");
+
+			String message = constructResponseMessage(collect);
+			response.add(message);
+		}
+		return response;
+	}
+
+	private String constructResponseMessage(List<String> collect) {
+		StringBuffer message = new StringBuffer();
+		collect.forEach(item -> message.append(item).append(Constant.SPACE));
+		return message.toString().trim();
 	}
 
 }

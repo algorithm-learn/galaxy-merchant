@@ -7,7 +7,7 @@ import org.akj.algorithm.merchant.entity.CurrencySymbol;
 import org.akj.algorithm.merchant.entity.GalaxyCurrencyAmount;
 import org.akj.algorithm.merchant.utils.CurrencyAmountUtil;
 
-public class MetalExpression {
+public class MetalExpression extends StandardExpression {
 	public static final int REPET_LIMIT = 3;
 
 	private List<GalaxyCurrencyAmount> galaxyCurrencyAmountList = null;
@@ -23,12 +23,12 @@ public class MetalExpression {
 		this.credits = credits;
 	}
 
-	public GalaxyCurrencyAmount getValue() {
-		Long sum = CurrencyAmountUtil.sum(galaxyCurrencyAmountList);
+	public BigDecimal getValue() {
+		BigDecimal sum = CurrencyAmountUtil.sum(galaxyCurrencyAmountList);
 
-		BigDecimal temp = BigDecimal.valueOf(credits).divide(BigDecimal.valueOf(sum));
-		
-		return new GalaxyCurrencyAmount(symbol, temp);
+		BigDecimal temp = BigDecimal.valueOf(credits).divide(sum);
+
+		return temp;
 	}
 
 }

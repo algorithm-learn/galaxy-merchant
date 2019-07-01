@@ -12,56 +12,55 @@ import org.akj.algorithm.merchant.entity.GalaxyCurrencyAmount;
 
 public final class CurrencyAmountUtil {
 
-	public static Long sum(List<GalaxyCurrencyAmount> currencyAmountList) {
-		final List<Long> currencyAmounts = currencyAmountList.stream().mapToLong(curr -> curr.getAmount().longValue())
-				.boxed().collect(Collectors.toList());
-		final List<Long> temp = new ArrayList<Long>();
+	public static BigDecimal sum(List<GalaxyCurrencyAmount> currencyAmountList) {
+		final List<BigDecimal> currencyAmounts = currencyAmountList.stream().map(curr -> curr.getAmount())
+				.collect(Collectors.toList());
+		final List<BigDecimal> temp = new ArrayList<BigDecimal>();
 
 		for (int currentIndex = 0; currentIndex < currencyAmounts.size();) {
-			Long currentValue = currencyAmounts.get(currentIndex);
-			Long nextValue = currentIndex + 1 >= currencyAmounts.size() ? 0 : currencyAmounts.get(currentIndex + 1);
+			BigDecimal currentValue = currencyAmounts.get(currentIndex);
+			BigDecimal nextValue = currentIndex + 1 >= currencyAmounts.size() ? BigDecimal.ZERO : currencyAmounts.get(currentIndex + 1);
 
-			if (currentValue >= nextValue) {
+			if (currentValue.compareTo(nextValue) >= 0) {
 				temp.add(currentValue);
 				currentIndex++;
 			} else {
-				temp.add(nextValue - currentValue);
+				temp.add(nextValue.subtract(currentValue));
 				currentIndex = currentIndex + 2;
 			}
 		}
 
-		Long sum = temp.stream().mapToLong(value -> value.longValue()).sum();
+		double sum = temp.stream().mapToDouble(BigDecimal::doubleValue).sum();
 
-		return sum;
+		return new BigDecimal(sum);
 	}
 
-	public static Long summ(List<CurrencyAmount> currencyAmountList) {
-		final List<Long> currencyAmounts = currencyAmountList.stream().mapToLong(curr -> curr.getAmount().longValue())
-				.boxed().collect(Collectors.toList());
-		final List<Long> temp = new ArrayList<Long>();
+	public static BigDecimal summ(List<CurrencyAmount> currencyAmountList) {
+		final List<BigDecimal> currencyAmounts = currencyAmountList.stream().map(curr -> curr.getAmount())
+				.collect(Collectors.toList());
+		final List<BigDecimal> temp = new ArrayList<BigDecimal>();
 
 		for (int currentIndex = 0; currentIndex < currencyAmounts.size();) {
-			Long currentValue = currencyAmounts.get(currentIndex);
-			Long nextValue = currentIndex + 1 >= currencyAmounts.size() ? 0 : currencyAmounts.get(currentIndex + 1);
+			BigDecimal currentValue = currencyAmounts.get(currentIndex);
+			BigDecimal nextValue = currentIndex + 1 >= currencyAmounts.size() ? BigDecimal.ZERO : currencyAmounts.get(currentIndex + 1);
 
-			if (currentValue >= nextValue) {
+			if (currentValue.compareTo(nextValue) >= 0) {
 				temp.add(currentValue);
 				currentIndex++;
 			} else {
-				temp.add(nextValue - currentValue);
+				temp.add(nextValue.subtract(currentValue));
 				currentIndex = currentIndex + 2;
 			}
 		}
 
-		Long sum = temp.stream().mapToLong(value -> value.longValue()).sum();
+		double sum = temp.stream().mapToDouble(BigDecimal::doubleValue).sum();
 
-		return sum;
+		return new BigDecimal(sum);
 	}
 
-	public static Long calculate(String symbol, List<CurrencyAmount> currencyAmountList,
+	public static BigDecimal calculate(String symbol, List<CurrencyAmount> currencyAmountList,
 			List<CurrencyAmount> metalCurrencies) {
-		Long result = 0l;
-		Long sum = summ(currencyAmountList);
+		BigDecimal sum = summ(currencyAmountList);
 
 		Optional<CurrencyAmount> temp = metalCurrencies.stream()
 				.filter(currency -> currency.getCurrency().getSymbol().equals(symbol)).findFirst();
@@ -69,7 +68,7 @@ public final class CurrencyAmountUtil {
 		if (temp.isEmpty())
 			throw new InvalidParameterException("no such metal " + symbol);
 
-		return temp.get().getAmount().multiply(BigDecimal.valueOf(sum)).longValue();
+		return temp.get().getAmount().multiply(sum);
 	}
 
 }
