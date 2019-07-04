@@ -47,7 +47,7 @@ public class TradeService {
 
 		// type4: how many Credits is xxx?
 		requestsWithoutType1.removeAll(type3Inputs);
-		List<String> type4Inputs = extractTypy4InputFromSource(requestsWithoutType1);
+		List<String> type4Inputs = extractType4InputFromSource(requestsWithoutType1);
 		List<String> type4Response = handleType4(type4Inputs, galaxyCurrencies, metalCurrencies);
 		type4Response.stream().forEach(message -> ConsoleUtil.print(message));
 
@@ -85,13 +85,12 @@ public class TradeService {
 		return requests.stream().filter(s -> s.startsWith(Constant.HOW_MUCH_IS)).collect(Collectors.toList());
 	}
 
-	private List<String> extractTypy4InputFromSource(List<String> requestsWithoutType1) {
+	private List<String> extractType4InputFromSource(List<String> requestsWithoutType1) {
 		return requestsWithoutType1.stream().filter(item -> item.startsWith(Constant.HOW_MANY))
 				.collect(Collectors.toList());
 	}
 
 	// extract metal and calculate it's value
-	@SuppressWarnings("unchecked")
 	private List<CurrencyAmount> populateCurrencyMappingforType2(List<String> type2Inputs,
 			List<CurrencyAmount> basicRomanCurrencyList, List<CurrencyAmount> galaxyCurrencyList) {
 

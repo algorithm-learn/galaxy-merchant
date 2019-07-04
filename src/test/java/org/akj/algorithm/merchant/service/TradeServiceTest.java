@@ -80,21 +80,87 @@ class TradeServiceTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void testPopulateCurrencyMappingforType2() throws Exception {
 
 		Method method1 = TradeService.class.getDeclaredMethod("populateCurrencyMappingforType1", List.class,
 				List.class);
 		method1.setAccessible(true);
-		List<CurrencyAmount> currencies = (List<CurrencyAmount>) method1.invoke(tradeService, inputs.subList(0, 3),
+		List<CurrencyAmount> currencies = (List<CurrencyAmount>) method1.invoke(tradeService, inputs.subList(0, 4),
 				app.getBasicCurrencyAmountList());
 
 		Method method2 = TradeService.class.getDeclaredMethod("populateCurrencyMappingforType2", List.class, List.class,
 				List.class);
 		method2.setAccessible(true);
-		List<CurrencyAmount> metalCurrencies = (List<CurrencyAmount>) method2.invoke(tradeService, inputs.subList(4, 6),
+		List<CurrencyAmount> metalCurrencies = (List<CurrencyAmount>) method2.invoke(tradeService, inputs.subList(4, 7),
 				app.getBasicCurrencyAmountList(), currencies);
 
 		Assertions.assertEquals(17, metalCurrencies.get(0).getAmount().intValue());
-
 	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void testExtractType3InputFromSource() throws Exception {
+		Method method1 = TradeService.class.getDeclaredMethod("extractType3InputFromSource", List.class);
+		method1.setAccessible(true);
+		List<String> result = (List<String>) method1.invoke(tradeService, inputs.subList(7, 12));
+
+		Assertions.assertTrue(result.size() == 1);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void testHandleType3() throws Exception {
+		Method method1 = TradeService.class.getDeclaredMethod("populateCurrencyMappingforType1", List.class,
+				List.class);
+		method1.setAccessible(true);
+		List<CurrencyAmount> currencies = (List<CurrencyAmount>) method1.invoke(tradeService, inputs.subList(0, 4),
+				app.getBasicCurrencyAmountList());
+
+		Method method = TradeService.class.getDeclaredMethod("handleType3", List.class, List.class);
+		method.setAccessible(true);
+		List<String> result = (List<String>) method.invoke(tradeService, inputs.subList(7, 8), currencies);
+
+		Assertions.assertEquals(result.size(), 1);
+
+		Assertions.assertTrue(result.get(0).matches(".* is \\d+"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void testExtractTypy4InputFromSource() throws Exception {
+		Method method1 = TradeService.class.getDeclaredMethod("extractType4InputFromSource", List.class);
+		method1.setAccessible(true);
+		List<String> result = (List<String>) method1.invoke(tradeService, inputs.subList(8, 12));
+
+		Assertions.assertTrue(result.size() == 3);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void testHandleType4() throws Exception {
+		Method method1 = TradeService.class.getDeclaredMethod("populateCurrencyMappingforType1", List.class,
+				List.class);
+		method1.setAccessible(true);
+		List<CurrencyAmount> currencies = (List<CurrencyAmount>) method1.invoke(tradeService, inputs.subList(0, 4),
+				app.getBasicCurrencyAmountList());
+		Assertions.assertEquals(4, currencies.size());
+
+		Method method2 = TradeService.class.getDeclaredMethod("populateCurrencyMappingforType2", List.class, List.class,
+				List.class);
+		method2.setAccessible(true);
+		List<CurrencyAmount> metalCurrencies = (List<CurrencyAmount>) method2.invoke(tradeService, inputs.subList(4, 7),
+				app.getBasicCurrencyAmountList(), currencies);
+		Assertions.assertEquals(17, metalCurrencies.get(0).getAmount().intValue());
+
+		Method method = TradeService.class.getDeclaredMethod("handleType4", List.class, List.class, List.class);
+		method.setAccessible(true);
+		List<String> result = (List<String>) method.invoke(tradeService, inputs.subList(8, 11), currencies,
+				metalCurrencies);
+
+		Assertions.assertTrue(result.size() == 3);
+
+		Assertions.assertTrue(result.get(0).matches(".* is \\d+"));
+	}
+
 }
